@@ -1,0 +1,59 @@
+pipeline {
+    environment {
+        dockerimagename = "maxbova/http_server"
+        docker_build_number = "commit_verification"
+        dockerImage = ""
+    }
+    agent none
+    tools {
+        jdk 'java_11'
+        maven 'maven_3.6.3'
+        git 'git_2.34.1'
+    }
+    stages {
+        stage('Clone the json server project') {
+            agent any
+            steps {
+                git branch: 'main', url: 'https://github.com/Maxayer/http_file_server.git'
+            }
+        }
+        
+        stage('Build image') {
+            agent any
+            steps{
+                script {
+                    dockerImage = docker.build dockerimagename
+                }
+            }
+        }
+
+        stage('Pushing Image') {
+            agent any
+            environment {
+               registryCredential = 'docker_entry'
+            }
+            steps {
+                script {
+                    docker.withRegistry( 'https://registry.hub.docker.com', registryCredential ) {
+                        dockerImage.push("commit_verification")
+                    }   
+                }
+            }
+        }
+        stage('Remove Unused docker image') {
+            agent any
+            steps {
+                sh "docker rmi -f $dockerimagename:$docker_build_number"
+            }
+        }
+        
+        stage('Deploying App to Kubernetes') {
+            agent any
+            steps {
+                script {
+                    kubernetesDeploy(configs: "json_server.yaml", kubeconfigId: "kuber_entry")
+                }
+            }
+        }
+    }
+}
