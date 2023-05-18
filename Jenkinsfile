@@ -46,6 +46,7 @@ node {
         ])
         def minikubeIP = sh(script: "minikube ip", returnStdout: true).trim()
         sh "gradle gatlingRun-JsonServerTest -DminikubeIP=${minikubeIP}"
+        gatlingArchive()
     }
 }
 
