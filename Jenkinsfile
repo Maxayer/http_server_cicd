@@ -1,5 +1,5 @@
 // Define environment variables
-env.dockerimagename = "maxbova/http_server"
+env.docker_image_name = "maxbova/http_server"
 env.docker_build_number = "commit_verification"
 def dockerImage
 
@@ -12,25 +12,28 @@ node {
     
     // Build Docker image
     stage('Build image') {
-        dockerImage = docker.build env.dockerimagename
+        dockerImage = docker.build("${env.docker_image_name}:${env.ghprbActualCommit}")
     }
 
     // Push Docker image
     stage('Pushing Image') {
         withCredentials([usernamePassword(credentialsId: 'docker_entry', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
             docker.withRegistry('https://registry.hub.docker.com', 'docker_entry') {
-                dockerImage.push("commit_verification")
+                dockerImage.push()
             }
         }
     }
 
     // Remove Docker image
     stage('Remove Unused docker image') {
-        sh "docker rmi -f ${env.dockerimagename}:${env.docker_build_number}"
+        sh "docker rmi -f ${env.docker_image_name}:${env.ghprbActualCommit}"
     }
 
     //Deploy to minikube
     stage('Deploying App to Kubernetes') {
+        sh '''
+            sed -i "s#IMAGE_TAG_PLACEHOLDER#${env.ghprbActualCommit}#g" json_server.yaml
+            '''
         kubernetesDeploy(configs: "json_server.yaml", kubeconfigId: "kuber_entry")
     }
     
