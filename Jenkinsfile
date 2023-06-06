@@ -1,13 +1,16 @@
 // Define environment variables
 env.docker_image_name = "maxbova/http_server"
-env.docker_build_number = "commit_verification"
 def dockerImage
 
 node {
     // Checkout
     stage('Clone the json server project') {
-        checkout([$class: 'GitSCM', branches: [[name: "${env.ghprbActualCommit}"]], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[url: 'https://github.com/Maxayer/http_file_server.git']]])
-
+        checkout([$class: 'GitSCM',
+        branches: [[name: "${env.ghprbActualCommit}"]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: [],
+        submoduleCfg: [],
+        userRemoteConfigs: [[url: 'https://github.com/Maxayer/http_file_server.git']]])
     }
     
     // Build Docker image
@@ -31,9 +34,9 @@ node {
 
     //Deploy to minikube
     stage('Deploying App to Kubernetes') {
-        sh '''
-            sed -i "s#IMAGE_TAG_PLACEHOLDER#${env.ghprbActualCommit}#g" json_server.yaml
-            '''
+        def dockerTag = env.ghprbActualCommit
+        sh "sed -i \"s#IMAGE_TAG_PLACEHOLDER#${dockerTag}#g\" json_server.yaml"
+
         kubernetesDeploy(configs: "json_server.yaml", kubeconfigId: "kuber_entry")
     }
     
