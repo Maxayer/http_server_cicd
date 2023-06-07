@@ -22,7 +22,7 @@ node {
     // Push Docker image
     stage('Pushing Image') {
         withCredentials([usernamePassword(credentialsId: 'docker_entry', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-            docker.withRegistry("${dockerRegistry}", 'docker_entry') {
+            docker.withRegistry("https://${dockerRegistry}", 'docker_entry') {
                 dockerImage.push()
             }
         }
