@@ -1,5 +1,6 @@
 // Define environment variables
 env.docker_image_name = "maxbova/http_server"
+def dockerRegistry = "registry.hub.docker.com"
 def dockerImage
 
 node {
@@ -21,7 +22,7 @@ node {
     // Push Docker image
     stage('Pushing Image') {
         withCredentials([usernamePassword(credentialsId: 'docker_entry', passwordVariable: 'DOCKER_PASSWORD', usernameVariable: 'DOCKER_USERNAME')]) {
-            docker.withRegistry('https://registry.hub.docker.com', 'docker_entry') {
+            docker.withRegistry("${dockerRegistry}", 'docker_entry') {
                 dockerImage.push()
             }
         }
@@ -54,5 +55,9 @@ node {
         sh "gradle gatlingRun-JsonServerTest -DminikubeIP=${minikubeIP}"
         gatlingArchive()
     }
-}
 
+    // Remove Docker image
+    stage('Remove Unused docker image') {
+        sh "docker rmi -f ${dockerRegistry}/${env.docker_image_name}:${env.ghprbActualCommit}"
+    }
+}
